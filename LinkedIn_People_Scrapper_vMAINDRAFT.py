@@ -2,8 +2,9 @@ import json
 import pandas as pd
 import requests
 import time
-import re
+import os
 from datetime import datetime
+from dotenv import load_dotenv
 
 try:
 	start_time = time.time()
@@ -34,7 +35,8 @@ try:
 		'COMPANY NAME': [],
 		'EXPERIENCE': []
 	}
-	api_key = "288145f3e1msh1017ae897286d85p12aef6jsn1865734193ae"
+	load_dotenv()
+	api_key = os.getenv('API_KEY')
 	api_host = "fresh-linkedin-profile-data.p.rapidapi.com"
 
 	#User inputs
