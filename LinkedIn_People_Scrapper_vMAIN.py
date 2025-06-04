@@ -25,6 +25,11 @@ try:
 	unique_experience_list = [] #Initializing unique experience list
 	company_and_experience_dict = {} #Initializing company and experience dictionary
 	final_company_and_experience_dict = {} #Initializing final company and experience dictionary
+	input_role_combinations = []
+	input_role_list = []
+	input_role_list_lower = []
+	input_role_list_upper = []
+	input_role_list_normal = []
 	master_dict = {
 					'PROFILE ID': [],
 					'FULL NAME':[],
@@ -46,10 +51,29 @@ try:
 	#User inputs
 	input_role = 'AI Engineer' #input('Enter search roles (separate with commas if searching for more than one role): ')
 	input_function = 'Consulting' #input('Select Function: ')
-	input_role_list = [x.strip() for x in input_role.split(',')]
-	input_function_list = [x.strip() for x in input_function.split(',')]
 	input_search_country = 'Egypt' #input('Enter country for search: ')
+	input_required_min_years_of_experience = 5 #int(input('Enter minimum years of experience: '))
+	input_required_max_years_of_experience = 20 #int(input('Enter maximum years of experience: '))
 	input_number_of_records = 5 #int(input('Enter total number of profiles needed (max. 100): '))
+
+	#Input alterations for wider search
+	for i in range(len(input_role)):
+		input_role_combinations.append(input_role[i])
+
+	for i in range(len(input_role_combinations)):
+		input_role_list_lower.append(input_role_combinations[i].lower()) #all lower case letters
+		input_role_list_upper.append(input_role_combinations[i].upper()) #all upper case letters
+		input_role_list_normal.append(input_role_combinations[i]) #all letters as-is
+	#Combinations of input role characters for wider search
+	input_role_list.append(str(''.join(input_role_list_lower)))
+	input_role_list.append(str(''.join(input_role_list_upper)))
+	input_role_list.append(str(''.join(input_role_list_normal)))
+	input_role_list.append(input_role.title())
+
+	input_function_list = [x.strip() for x in input_function.split(',')]
+
+	#Code to generate skills to position map for alignment assessment
+	file_path = r''
 
 	# Code to run query
 	url = "https://fresh-linkedin-profile-data.p.rapidapi.com/search-employees"
@@ -57,6 +81,7 @@ try:
 		'Egypt': 106155005,
 		'India': 102713980
 	}
+
 	selected_location = geo_locations.get(input_search_country)
 	payload = {
 		#"current_company_ids": [162479, 1053],
@@ -179,9 +204,7 @@ try:
 			else:
 				try:
 					numeric_values = [float(v) for v in value]
-					unique_experience = round(sum(numeric_values)/len(numeric_values), 1) #Calculation of overlapping experiences done based on averages.
-					print(f'Company: {key}')
-					print(f'Experience: {unique_experience}')
+					unique_experience = round(max(numeric_values), 1) #Calculation of overlapping experiences done based on maximum value.
 				except (ZeroDivisionError, ValueError):
 					unique_experience = 0
 				unique_experience_list.append(unique_experience)
