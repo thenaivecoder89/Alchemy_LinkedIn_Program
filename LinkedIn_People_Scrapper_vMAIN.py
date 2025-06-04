@@ -1,10 +1,13 @@
 import json
+import traceback
+from collections import defaultdict
 import pandas as pd
 import requests
 import time
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+import re
 
 try:
 	start_time = time.time()
@@ -12,11 +15,15 @@ try:
 	# Variable initializations
 	status_check = 'pending'
 	status_message = ''
+	experience_historical = 0
+	experience_current = 0
 	master_columns = ['Full Name', 'About']
 	skill_list = [] #Initiatilizing skills list
 	job_type_list = [] #Initiatilizing job type list
 	duration_list = [] #Initiatilizing duration list
 	total_experience_list = [] #Initializing total experience list
+	unique_experience_list = [] #Initializing unique experience list
+	company_and_experience_dict = {} #Initializing company and experience dictionary
 	master_dict = {
 					'PROFILE ID': [],
 					'FULL NAME':[],
@@ -26,15 +33,10 @@ try:
 					'CURRENT COMPANY':[],
 					'SKILLS': [],
 					'JOB TYPES': [],
-					'DURATION WITH CURRENT AND PAST COMPANIES': [],
+					'ALL COMPANIES THE CANDIDATE HAS WORKED WITH': [],
 					'TOTAL EXPERIENCE (in years)': [],
 					'FLAG (Denotes R if no experience or too many jumps)': []
 				}
-	company_experience_dict = {
-		'FULL NAME': [],
-		'COMPANY NAME': [],
-		'EXPERIENCE': []
-	}
 	load_dotenv()
 	api_key = os.getenv('API_KEY')
 	api_host = "fresh-linkedin-profile-data.p.rapidapi.com"
@@ -101,74 +103,106 @@ try:
 	print(f'Parsed Master Data:\n{parsed_master_data}')
 
 	for item in master_data:
-		skill_list = [] #Setting skill list to null for each iteration
-		job_type_list = [] #Setting job type list to null for each iteration
-		duration_list = [] #Setting duration list to null for each iteration
-		total_experience_list = [] #Setting total experience list to null
-		all_companies_list = [] #Setting all companies list to null for each iteration
+		#Setting all lists and dictionaries to null for each iteration
+		skill_list = []
+		job_type_list = []
+		duration_list = []
+		total_experience_list = []
+		all_companies_list = []
 		experience_list = []
+		unique_companies_list = []
+		unique_experience_list = []
+		company_and_experience_dict = {}
+
 		flag = '' #Setting flag to null for each iteration
+
 		master_dict['PROFILE ID'].append(item.get('profile_id'))
 		master_dict['FULL NAME'].append(item.get('full_name'))
 		master_dict['LINKEDIN URL'].append(item.get('linkedin_url'))
 		master_dict['ABOUT'].append(item.get('about'))
 		master_dict['CURRENT JOB TITLE'].append(item.get('job_title'))
 		master_dict['CURRENT COMPANY'].append(item.get('company'))
+
 		for item2 in item.get('experiences'):
 			skill_list.append(item2.get('skills'))
 			job_type_list.append(item2.get('job_type'))
 			duration_list.append(item2.get('duration'))
-			all_companies_list.append(item2.get('company'))
+			all_companies_list = item2.get('company')
+
 			if not item2.get('is_current'):
 				try:
-					experience_years = item2.get('end_year') - item2.get('start_year')
-					experience_months = item2.get('end_month') - item2.get('start_month') + 1
-				except ValueError as ve:
-					experience_years = 0
-					experience_months = 0
-				total_experience_historical = str(experience_years) + 'years and' + str(experience_months) + 'months'
-				experience_list.append(total_experience_historical)
+					start_date_str = '1/' + str(item2.get('start_month')) + '/' + str(item2.get('start_year'))
+					end_date_str = '1/' + str(item2.get('end_month')) + '/' + str(item2.get('end_year'))
+					start_date = datetime.strptime(start_date_str, '%d/%m/%Y')
+					end_date = datetime.strptime(end_date_str, '%d/%m/%Y')
+					delta = end_date - start_date
+					experience_historical = round(delta.days / 365, 1)
+				except Exception as e:
+					experience = 0
+				experience_list.append(experience_historical)
 
 			elif item2.get('is_current'):
 				try:
+					start_date_str = '1/' + str(item2.get('start_month')) + '/' + str(item2.get('start_year'))
+					start_date = datetime.strptime(start_date_str, '%d/%m/%Y')
 					today = datetime.today()
-					current_year = today.year
-					current_month = today.month
-					experience_years = current_year - item2.get('start_year')
-					experience_months = current_month - item2.get('start_month') + 1
-				except ValueError as ve:
-					experience_years = 0
-					experience_months = 0
-				# total_experience_current = str(experience_years) + 'years and' + str(experience_months) + 'months'
-				# experience_list.append(total_experience_current)
+					delta = today - start_date
+					experience_current = round(delta.days / 365, 1)
+				except Exception as e:
+					experience = 0
+				experience_list.append(experience_current)
+
+		for item in all_companies_list:
+			if item in unique_companies_list or item == 'Career Break':
+				pass
+			else:
+				unique_companies_list.append(item)
+
+		company_and_experience_dict = {
+			'COMPANY': all_companies_list,
+			'EXPERIENCE': experience_list
+		}
+
+		grouped_dict = defaultdict(list)
+
+		for company, exp in zip(company_and_experience_dict['COMPANY'], company_and_experience_dict['EXPERIENCE']):
+			grouped_dict[company].append(exp)
+
+		final_company_and_experience_dict = dict(grouped_dict)
+
+		for key, value in company_and_experience_dict.items():
+			if key == 'Career Break':
+				pass
+			else:
+				try:
+					numeric_values = [float(v) for v in value]
+					unique_experience = round(sum(numeric_values)/len(numeric_values), 1)
+				except (ZeroDivisionError, ValueError):
+					unique_experience = 0
+				unique_experience_list.append(unique_experience)
+
 
 		master_dict['SKILLS'].append(skill_list)
 		master_dict['JOB TYPES'].append(job_type_list)
-		master_dict['DURATION WITH CURRENT AND PAST COMPANIES'].append(experience_list)
-		#master_dict['TOTAL EXPERIENCE (in years)'].append(sum(total_experience_list))
+		master_dict['ALL COMPANIES THE CANDIDATE HAS WORKED WITH'].append(unique_companies_list)
+		master_dict['TOTAL EXPERIENCE (in years)'].append(sum(unique_experience_list))
 		master_dict['FLAG (Denotes R if no experience or too many jumps)'].append(flag)
-		company_experience_dict['COMPANY NAME'].append(all_companies_list)
-		company_experience_dict['EXPERIENCE'].append(experience_list)
-		company_experience_dict['FULL NAME'].append(item.get('full_name'))
 
 	df = pd.DataFrame(master_dict)
 	print(f'Master Data in Dataframe:\n{df}')
-	df2 = pd.DataFrame(company_experience_dict)
-	print(f'Data Frame for Company and Experiences\n{df2}')
-	#df.to_excel(f'LinkedIn_Dump_{input_role_list}.xlsx')
-	df2.to_excel('Company and Experiences.xlsx')
+	df.to_excel(f'LinkedIn_Dump_{input_role_list}.xlsx')
 	end_time = time.time()
 	runtime = end_time - start_time
 	print(f'Program Execution Time: {runtime: .2f} seconds.')
-except ValueError as ve:
-	print(f'Error encountered:{ve}')
-except ConnectionError as ce:
-	print(f'Error encountered:{ce}')
-except TimeoutError as te:
-	print(f'Error encountered:{te}')
-except KeyError as ke:
-	print(f'Error encountered:{ke}')
-except TypeError as tye:
-	print(f'Error encountered:{tye}')
+except (ValueError, ConnectionError, TimeoutError, KeyError, TypeError) as detected:
+	match = re.search(r'line (\d+)', traceback.format_exc())
+	if match:
+		print(f'Error encountered:{detected} in line number: {match.group(1)}.')
+	else:
+		print(f'Error encountered:{detected} and line not found.')
 except Exception as e:
-	print(f'Error encountered:{e}')
+	match = re.search(r'line (\d+)', traceback.format_exc())
+	if match:
+		print(f'Error encountered:{e} in line number: {match.group(1)}.')
+	else:
+		print(f'Error encountered:{e} and line not found.')
