@@ -179,7 +179,7 @@ try:
 			else:
 				try:
 					numeric_values = [float(v) for v in value]
-					unique_experience = round(max(numeric_values), 1) #Calculation of overlapping experiences done based on maximum value.
+					unique_experience = round(sum(numeric_values)/len(numeric_values), 1) #Calculation of overlapping experiences done based on averages.
 					print(f'Company: {key}')
 					print(f'Experience: {unique_experience}')
 				except (ZeroDivisionError, ValueError):
