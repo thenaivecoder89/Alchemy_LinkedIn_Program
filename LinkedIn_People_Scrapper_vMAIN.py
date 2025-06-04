@@ -24,6 +24,7 @@ try:
 	total_experience_list = [] #Initializing total experience list
 	unique_experience_list = [] #Initializing unique experience list
 	company_and_experience_dict = {} #Initializing company and experience dictionary
+	final_company_and_experience_dict = {} #Initializing final company and experience dictionary
 	master_dict = {
 					'PROFILE ID': [],
 					'FULL NAME':[],
@@ -34,6 +35,7 @@ try:
 					'SKILLS': [],
 					'JOB TYPES': [],
 					'ALL COMPANIES THE CANDIDATE HAS WORKED WITH': [],
+					'EXPERIENCE IN EACH COMPANY': [],
 					'TOTAL EXPERIENCE (in years)': [],
 					'FLAG (Denotes R if no experience or too many jumps)': []
 				}
@@ -113,6 +115,7 @@ try:
 		unique_companies_list = []
 		unique_experience_list = []
 		company_and_experience_dict = {}
+		final_company_and_experience_dict = {}
 
 		flag = '' #Setting flag to null for each iteration
 
@@ -127,7 +130,7 @@ try:
 			skill_list.append(item2.get('skills'))
 			job_type_list.append(item2.get('job_type'))
 			duration_list.append(item2.get('duration'))
-			all_companies_list = item2.get('company')
+			all_companies_list.append(item2.get('company'))
 
 			if not item2.get('is_current'):
 				try:
@@ -170,13 +173,15 @@ try:
 
 		final_company_and_experience_dict = dict(grouped_dict)
 
-		for key, value in company_and_experience_dict.items():
+		for key, value in final_company_and_experience_dict.items():
 			if key == 'Career Break':
 				pass
 			else:
 				try:
 					numeric_values = [float(v) for v in value]
-					unique_experience = round(sum(numeric_values)/len(numeric_values), 1)
+					unique_experience = round(max(numeric_values), 1)
+					print(f'Company: {key}')
+					print(f'Experience: {unique_experience}')
 				except (ZeroDivisionError, ValueError):
 					unique_experience = 0
 				unique_experience_list.append(unique_experience)
@@ -185,6 +190,7 @@ try:
 		master_dict['SKILLS'].append(skill_list)
 		master_dict['JOB TYPES'].append(job_type_list)
 		master_dict['ALL COMPANIES THE CANDIDATE HAS WORKED WITH'].append(unique_companies_list)
+		master_dict['EXPERIENCE IN EACH COMPANY'].append(unique_experience_list)
 		master_dict['TOTAL EXPERIENCE (in years)'].append(sum(unique_experience_list))
 		master_dict['FLAG (Denotes R if no experience or too many jumps)'].append(flag)
 
