@@ -54,13 +54,13 @@ try:
 	api_host = "fresh-linkedin-profile-data.p.rapidapi.com"
 
 	#User inputs
-	input_role = 'AI Engineer' #input('Enter search roles (separate with commas if searching for more than one role): ')
-	input_function = 'Consulting' #input('Select Function: ')
-	input_search_country = 'Egypt' #input('Enter country for search: ')
-	input_required_min_years_of_experience = 5 #int(input('Enter minimum years of experience: '))
-	input_required_max_years_of_experience = 20 #int(input('Enter maximum years of experience: '))
-	input_number_of_records = 5 #int(input('Enter total number of profiles needed (max. 100): '))
-	input_required_skills = 'Python, Tensor Flow, SQL, MongoDB'#input('Enter the list of skills that ideal candidate should have: ')
+	input_role = input('Enter search roles (separate with commas if searching for more than one role): ')
+	input_function = input('Select Function: ')
+	input_search_country = input('Enter country for search: ')
+	input_required_min_years_of_experience = int(input('Enter minimum years of experience: '))
+	input_required_max_years_of_experience = int(input('Enter maximum years of experience: '))
+	input_number_of_records = int(input('Enter total number of profiles needed (max. 100): '))
+	input_required_skills = input('Enter the list of skills that ideal candidate should have: ')
 
 	#Input alterations for wider search
 	for i in range(len(input_role)):
