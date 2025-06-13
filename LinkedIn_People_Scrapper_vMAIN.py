@@ -8,6 +8,9 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 import re
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 try:
 	start_time = time.time()
@@ -42,7 +45,9 @@ try:
 					'ALL COMPANIES THE CANDIDATE HAS WORKED WITH': [],
 					'EXPERIENCE IN EACH COMPANY': [],
 					'TOTAL EXPERIENCE (in years)': [],
-					'FLAG (Denotes R if no experience or too many jumps)': []
+					'EXPERIENCE SCORE - 50% weight on match': [],
+					'SKILLS SCORE - 50% weight on match': [],
+					'MATCH SCORE (total of experience and skills scores - higher is better)': []
 				}
 	load_dotenv()
 	api_key = os.getenv('API_KEY')
@@ -55,6 +60,7 @@ try:
 	input_required_min_years_of_experience = 5 #int(input('Enter minimum years of experience: '))
 	input_required_max_years_of_experience = 20 #int(input('Enter maximum years of experience: '))
 	input_number_of_records = 5 #int(input('Enter total number of profiles needed (max. 100): '))
+	input_required_skills = 'Python, Tensor Flow, SQL, MongoDB'#input('Enter the list of skills that ideal candidate should have: ')
 
 	#Input alterations for wider search
 	for i in range(len(input_role)):
@@ -71,9 +77,6 @@ try:
 	input_role_list.append(input_role.title())
 
 	input_function_list = [x.strip() for x in input_function.split(',')]
-
-	#Code to generate skills to position map for alignment assessment
-	file_path = r''
 
 	# Code to run query
 	url = "https://fresh-linkedin-profile-data.p.rapidapi.com/search-employees"
@@ -132,6 +135,7 @@ try:
 	for item in master_data:
 		#Setting all lists and dictionaries to null for each iteration
 		skill_list = []
+		clean_skill_list = []
 		job_type_list = []
 		duration_list = []
 		total_experience_list = []
@@ -142,7 +146,6 @@ try:
 		company_and_experience_dict = {}
 		final_company_and_experience_dict = {}
 
-		flag = '' #Setting flag to null for each iteration
 
 		master_dict['PROFILE ID'].append(item.get('profile_id'))
 		master_dict['FULL NAME'].append(item.get('full_name'))
@@ -209,13 +212,40 @@ try:
 					unique_experience = 0
 				unique_experience_list.append(unique_experience)
 
+		# Calculating candidate experience score
+		avg_required_years_of_experience = (input_required_min_years_of_experience + input_required_max_years_of_experience) / 2
+		candidate_total_unique_experience = sum(unique_experience_list)
+		if candidate_total_unique_experience < avg_required_years_of_experience:
+			candidate_experience_score = 0
+		else:
+			candidate_experience_score = 0.5 * (candidate_total_unique_experience - avg_required_years_of_experience)
+
+		#Calculating candidate skill match score
+		clean_skill_list = [skill for skill in skill_list if isinstance(skill, str) and skill.strip() != '']
+		model = SentenceTransformer('all-MiniLM-L6-v2')
+		query_embedding = model.encode([input_required_skills])
+		if clean_skill_list:
+			skill_texts = [' '.join(clean_skill_list)]  # Combine all skills into one string
+			skill_embedding = model.encode(skill_texts)  # Use your SentenceTransformer model here
+			similarity_score = cosine_similarity(query_embedding, skill_embedding).flatten()
+		else:
+			similarity_score = [0.0]  # Or any default score if no skills exist
+
+		if sum(similarity_score) < 0:
+			candidate_skills_score = 0
+		else:
+			candidate_skills_score = 0.5 * sum(similarity_score)
+
+		match_score = candidate_experience_score + candidate_skills_score
 
 		master_dict['SKILLS'].append(skill_list)
 		master_dict['JOB TYPES'].append(job_type_list)
 		master_dict['ALL COMPANIES THE CANDIDATE HAS WORKED WITH'].append(unique_companies_list)
 		master_dict['EXPERIENCE IN EACH COMPANY'].append(unique_experience_list)
 		master_dict['TOTAL EXPERIENCE (in years)'].append(sum(unique_experience_list))
-		master_dict['FLAG (Denotes R if no experience or too many jumps)'].append(flag)
+		master_dict['EXPERIENCE SCORE - 50% weight on match'].append(candidate_experience_score)
+		master_dict['SKILLS SCORE - 50% weight on match'].append(candidate_skills_score)
+		master_dict['MATCH SCORE (total of experience and skills scores - higher is better)'].append(match_score)
 
 	df = pd.DataFrame(master_dict)
 	print(f'Master Data in Dataframe:\n{df}')
