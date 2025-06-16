@@ -240,7 +240,11 @@ try:
 					experience = 0
 				experience_current_list.append(experience_current)
 
-			average_current_experience = sum(experience_current_list)/ len(experience_current_list) #added to manage multiple current experiences reported
+			# added to manage multiple current experiences reported
+			try:
+				average_current_experience = sum(experience_current_list)/ len(experience_current_list)
+			except ZeroDivisionError:
+				average_current_experience = 0
 			experience_list.append(average_current_experience) #added to manage multiple current experiences reported
 
 		for item in all_companies_list:
@@ -275,7 +279,10 @@ try:
 		# Calculating candidate experience score
 		# try except block added to handle null values in the end_year list
 		try:
-			minimum_end_year_value = min(end_year)
+			if isinstance(min(end_year), int) or isinstance(min(end_year), float):
+				minimum_end_year_value = min(end_year)
+			else:
+				minimum_end_year_value = int(datetime.today().year)
 		except Exception:
 			minimum_end_year_value = int(datetime.today().year)
 		candidate_total_unique_experience = int(datetime.today().year) - minimum_end_year_value  # added to manage overlapping experiences - leading to inflated total experience figures
