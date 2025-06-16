@@ -142,10 +142,18 @@ try:
 
 	selected_location = geo_locations.get(input_search_country)
 	payload = {
-		#"current_company_ids": [162479, 1053],
+		# "current_company_ids": [1002153, 6043316, 1319547, 79676435, 30140054, 14435789], # TO focus on Museums, Heritage Authorities. - Enabled only for AHA. DISABLE AFTER SOURCING
+															# Companies shortlisted:
+															# DCT (1002153),
+															# Dubai Culture and Arts (6043316),
+															# Sharjah Museums Authority (1319547)
+															# Ministry of Culture - UAE (79676435)
+															# DHAKIRA Center for Heritage Studies - UAE (30140054)
+															# Louvre Abu Dhabi (14435789)
 		"title_keywords": input_role_list,
 		"functions": input_function_list,
 		"geo_codes": [selected_location],
+		# "past_company_ids": [1002153, 6043316, 1319547, 79676435, 30140054, 14435789], # TO focus on Museums, Heritage Authorities. - Enabled only for AHA. DISABLE AFTER SOURCING
 		"limit": input_number_of_records
 	}
 	headers = {
@@ -298,7 +306,7 @@ try:
 		query_embedding = model.encode([input_required_skills])
 		if clean_skill_list:
 			skill_texts = [' '.join(clean_skill_list)]  # Combine all skills into one string
-			skill_embedding = model.encode(skill_texts)  # Use your SentenceTransformer model here
+			skill_embedding = model.encode(skill_texts)
 			similarity_score = cosine_similarity(query_embedding, skill_embedding).flatten()
 		else:
 			similarity_score = [0.0]  # Or any default score if no skills exist
