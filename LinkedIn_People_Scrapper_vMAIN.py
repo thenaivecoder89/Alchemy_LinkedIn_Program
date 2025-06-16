@@ -23,7 +23,7 @@ try:
 	skill_list = [] #Initiatilizing skills list
 	job_type_list = [] #Initiatilizing job type list
 	duration_list = [] #Initiatilizing duration list
-	total_experience_list = [] #Initializing total experience list
+	end_year = []  # added to manage overlapping experiences - leading to inflated total experience figures
 	unique_experience_list = [] #Initializing unique experience list
 	company_and_experience_dict = {} #Initializing company and experience dictionary
 	final_company_and_experience_dict = {} #Initializing final company and experience dictionary
@@ -32,6 +32,7 @@ try:
 	input_role_list_lower = []
 	input_role_list_upper = []
 	input_role_list_normal = []
+	experience_current_list = [] # added to manage multiple current experiences reported
 	master_dict = {
 					'PROFILE ID': [],
 					'FULL NAME':[],
@@ -44,8 +45,8 @@ try:
 					'ALL COMPANIES THE CANDIDATE HAS WORKED WITH': [],
 					'EXPERIENCE IN EACH COMPANY': [],
 					'TOTAL EXPERIENCE (in years)': [],
-					'EXPERIENCE SCORE - 50% weight on match': [],
-					'SKILLS SCORE - 50% weight on match': [],
+					'EXPERIENCE SCORE': [],
+					'SKILLS SCORE': [],
 					'MATCH SCORE (total of experience and skills scores - higher is better)': []
 				}
 	load_dotenv()
@@ -80,9 +81,64 @@ try:
 	# Code to run query
 	url = "https://fresh-linkedin-profile-data.p.rapidapi.com/search-employees"
 	geo_locations = {
-		'Egypt': 106155005,
-		'India': 102713980
-	}
+                'Egypt': 106155005,
+                'India': 102713980,
+                'United States': 103644278,
+                'Canada': 101174742,
+                'United Kingdom': 101165590,
+                'Germany': 101282230,
+                'France': 105015875,
+                'Australia': 101452733,
+                'Brazil': 106057199,
+                'Singapore': 102454443,
+                'Netherlands': 102890719,
+                'UAE': 104305776,
+                'Spain': 105646813,
+                'Italy': 103350119,
+                'Mexico': 103323778,
+                'Japan': 101355337,
+                'South Korea': 105149562,
+                'China': 102890883,
+                'Russia': 101728296,
+                'Poland': 105072130,
+                'Turkey': 105117694,
+                'Israel': 101620260,
+                'Switzerland': 106693272,
+                'Sweden': 105117694,
+                'Norway': 103819153,
+                'Denmark': 104514075,
+                'Finland': 100456013,
+                'Belgium': 100565514,
+                'Austria': 103883259,
+                'Ireland': 104738515,
+                'New Zealand': 105490917,
+                'South Africa': 105365761,
+                'Argentina': 100876405,
+                'Chile': 104621616,
+                'Colombia': 100876405,
+                'Peru': 102890719,
+                'Ukraine': 102264497,
+                'Czech Republic': 104508036,
+                'Portugal': 100364837,
+                'Greece': 104677530,
+                'Hungary': 100288700,
+                'Romania': 106670623,
+                'Bulgaria': 105333783,
+                'Croatia': 104688944,
+                'Serbia': 101855366,
+                'Slovakia': 105238872,
+                'Slovenia': 106137034,
+                'Lithuania': 101464403,
+                'Latvia': 104341318,
+                'Estonia': 102974008,
+                'Thailand': 105072130,
+                'Malaysia': 106808692,
+                'Philippines': 103121230,
+                'Indonesia': 102478259,
+                'Vietnam': 104195383,
+                'Taiwan': 104187078,
+                'Hong Kong': 102890719
+            }
 
 	selected_location = geo_locations.get(input_search_country)
 	payload = {
@@ -137,11 +193,12 @@ try:
 		clean_skill_list = []
 		job_type_list = []
 		duration_list = []
-		total_experience_list = []
 		all_companies_list = []
 		experience_list = []
 		unique_companies_list = []
 		unique_experience_list = []
+		experience_current_list = [] # added to manage multiple current experiences reported
+		end_year = [] # added to manage overlapping experiences - leading to inflated total experience figures
 		company_and_experience_dict = {}
 		final_company_and_experience_dict = {}
 
@@ -170,6 +227,7 @@ try:
 				except Exception as e:
 					experience = 0
 				experience_list.append(experience_historical)
+				end_year.append(item2.get('end_year'))  # End years of all past experiences appended to end_year list.
 
 			elif item2.get('is_current'):
 				try:
@@ -180,7 +238,10 @@ try:
 					experience_current = round(delta.days / 365, 1)
 				except Exception as e:
 					experience = 0
-				experience_list.append(experience_current)
+				experience_current_list.append(experience_current)
+
+			average_current_experience = sum(experience_current_list)/ len(experience_current_list) #added to manage multiple current experiences reported
+			experience_list.append(average_current_experience) #added to manage multiple current experiences reported
 
 		for item in all_companies_list:
 			if item in unique_companies_list or item == 'Career Break':
@@ -212,12 +273,17 @@ try:
 				unique_experience_list.append(unique_experience)
 
 		# Calculating candidate experience score
+		# try except block added to handle null values in the end_year list
+		try:
+			minimum_end_year_value = min(end_year)
+		except Exception:
+			minimum_end_year_value = int(datetime.today().year)
+		candidate_total_unique_experience = int(datetime.today().year) - minimum_end_year_value  # added to manage overlapping experiences - leading to inflated total experience figures
 		avg_required_years_of_experience = (input_required_min_years_of_experience + input_required_max_years_of_experience) / 2
-		candidate_total_unique_experience = sum(unique_experience_list)
 		if candidate_total_unique_experience < avg_required_years_of_experience:
 			candidate_experience_score = 0
 		else:
-			candidate_experience_score = 0.5 * (candidate_total_unique_experience - avg_required_years_of_experience)
+			candidate_experience_score = candidate_total_unique_experience - avg_required_years_of_experience
 
 		#Calculating candidate skill match score
 		clean_skill_list = [skill for skill in skill_list if isinstance(skill, str) and skill.strip() != '']
@@ -233,7 +299,7 @@ try:
 		if sum(similarity_score) < 0:
 			candidate_skills_score = 0
 		else:
-			candidate_skills_score = 0.5 * sum(similarity_score)
+			candidate_skills_score = sum(similarity_score)
 
 		match_score = candidate_experience_score + candidate_skills_score
 
@@ -241,9 +307,9 @@ try:
 		master_dict['JOB TYPES'].append(job_type_list)
 		master_dict['ALL COMPANIES THE CANDIDATE HAS WORKED WITH'].append(unique_companies_list)
 		master_dict['EXPERIENCE IN EACH COMPANY'].append(unique_experience_list)
-		master_dict['TOTAL EXPERIENCE (in years)'].append(sum(unique_experience_list))
-		master_dict['EXPERIENCE SCORE - 50% weight on match'].append(candidate_experience_score)
-		master_dict['SKILLS SCORE - 50% weight on match'].append(candidate_skills_score)
+		master_dict['TOTAL EXPERIENCE (in years)'].append(candidate_total_unique_experience) # added to manage overlapping experiences - leading to inflated total experience figures
+		master_dict['EXPERIENCE SCORE'].append(candidate_experience_score)
+		master_dict['SKILLS SCORE'].append(candidate_skills_score)
 		master_dict['MATCH SCORE (total of experience and skills scores - higher is better)'].append(match_score)
 
 	df = pd.DataFrame(master_dict)
