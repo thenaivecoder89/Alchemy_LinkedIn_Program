@@ -46,7 +46,7 @@ try:
         'ALL COMPANIES THE CANDIDATE HAS WORKED WITH': [],
         'EXPERIENCE IN EACH COMPANY': [],
         'TOTAL EXPERIENCE (in years)': [],
-        'EXPERIENCE SCORE': [],
+        # 'EXPERIENCE SCORE': [],
         'SKILLS SCORE': [],
         'MATCH SCORE (total of experience and skills scores - higher is better)': []
     }
@@ -325,9 +325,8 @@ try:
         master_dict['JOB TYPES'].append(job_type_list)
         master_dict['ALL COMPANIES THE CANDIDATE HAS WORKED WITH'].append(unique_companies_list)
         master_dict['EXPERIENCE IN EACH COMPANY'].append(unique_experience_list)
-        master_dict['TOTAL EXPERIENCE (in years)'].append(
-            candidate_total_unique_experience)  # added to manage overlapping experiences - leading to inflated total experience figures
-        master_dict['EXPERIENCE SCORE'].append(candidate_experience_score)
+        master_dict['TOTAL EXPERIENCE (in years)'].append(candidate_total_unique_experience)  # added to manage overlapping experiences - leading to inflated total experience figures
+        # master_dict['EXPERIENCE SCORE'].append(candidate_experience_score)
         master_dict['SKILLS SCORE'].append(candidate_skills_score)
         master_dict['MATCH SCORE (total of experience and skills scores - higher is better)'].append(match_score)
 
